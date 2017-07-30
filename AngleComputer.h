@@ -34,7 +34,7 @@ extern volatile bool         g_sensorValuesReady;
 class AngleComputer: public Runnable {
     public:
         static constexpr double MAX_LEAN             = 5.0;
-        static constexpr double ACCELEROMETER_WEIGHT = 0.9;
+        static constexpr double ACCELEROMETER_WEIGHT = 0.5;
         static constexpr double GYRO_WEIGHT          = 1 - ACCELEROMETER_WEIGHT;
     public:
         static int8_t trigger () {
