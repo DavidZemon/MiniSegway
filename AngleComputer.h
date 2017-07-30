@@ -43,11 +43,12 @@ extern const unsigned int SENSOR_UPDATE_FREQUENCY;
 extern const unsigned int FLAT_ON_FACE_COLOR;
 
 extern volatile unsigned int g_hardFault;
-extern volatile double       g_accelValue;
-extern volatile double       g_gyroValue;
-extern volatile double       g_angle;
 extern volatile double       g_accelAngle;
 extern volatile double       g_gyroAngle;
+extern volatile double       g_angle;
+extern volatile double       g_accelValueAcosAxis;
+extern volatile double       g_accelValueAsinAxis;
+extern volatile double       g_gyroValue;
 extern volatile unsigned int g_angleComputerTimer;
 extern volatile bool         g_sensorValuesReady;
 
@@ -72,12 +73,15 @@ class AngleComputer: public Runnable {
                 if (g_hardFault)
                     while (1);
 
-                const double leanFromAccelerometer = to_degrees(g_accelValue);
+                const double accelerometerAngle = to_degrees(g_accelValueAsinAxis, g_accelValueAcosAxis);
+                //const double accelerometerAngle = (accelerometerAngleAcos + accelerometerAngleAsin) / 2;
                 const double leanFromGyro          = g_angle + g_gyroValue / SENSOR_UPDATE_FREQUENCY;
 
-                g_accelAngle = leanFromAccelerometer;
+                //g_accelAngleAcos = accelerometerAngleAcos;
+                //g_accelAngleAsin = accelerometerAngleAsin;
+                g_accelAngle = accelerometerAngle;
                 g_gyroAngle  = leanFromGyro;
-                g_angle      = leanFromAccelerometer * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
+                g_angle      = accelerometerAngle * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
 
                 if (fabs(g_angle) > MAX_LEAN)
                     g_hardFault = FLAT_ON_FACE_COLOR;
@@ -87,9 +91,9 @@ class AngleComputer: public Runnable {
         }
 
     private:
-        static double to_degrees (double value) {
-            value        = fmin(fmax(value, -1), 1);
-            double angle = std::asin(value);
+        static double to_degrees (double value, double value2) {
+            //value        = fmin(fmax(value, -1), 1);
+            double angle = atan2(value, value2);
             return angle * 180 / M_PI;
         }
 

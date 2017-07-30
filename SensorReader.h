@@ -47,7 +47,8 @@ extern const unsigned int SENSOR_UPDATE_FREQUENCY;
 
 extern volatile unsigned int g_hardFault;
 extern volatile bool         g_sensorValuesReady;
-extern volatile double       g_accelValue;
+extern volatile double       g_accelValueAcosAxis;
+extern volatile double       g_accelValueAsinAxis;
 extern volatile double       g_gyroValue;
 extern volatile unsigned int g_sensorReaderTimer;
 
@@ -64,7 +65,8 @@ class SensorReader: public Runnable {
         static const ADXL345::Range    ACCELEROMETER_RANGE     = ADXL345::_2G;
         static const ADXL345::DataRate ACCELEROMETER_DATA_RATE = ADXL345::_3200_HZ;
         static const L3G::Axis         GYRO_AXIS               = L3G::Y;
-        static const ADXL345::Axis     ACCEL_AXIS              = ADXL345::Y;
+        static const ADXL345::Axis     ACCEL_AXIS_ACOS         = ADXL345::Z;
+        static const ADXL345::Axis     ACCEL_AXIS_ASIN         = ADXL345::Y;
 
         // Gyro data rate = 760 Hz, with Prop polling @ 100 Hz = Max averaging buffer of 7
         static const unsigned int GYRO_AVERAGING_BUFFER_LENGTH  = 7;
@@ -86,7 +88,7 @@ class SensorReader: public Runnable {
             while (1) {
                 volatile auto fullLoopStart = CNT;
 
-                g_accelValue        = this->read_accelerometer();
+                this->read_accelerometer(g_accelValueAcosAxis, g_accelValueAsinAxis);
                 g_gyroValue         = this->read_gyro();
                 g_sensorValuesReady = true;
 
@@ -134,16 +136,20 @@ class SensorReader: public Runnable {
             this->m_accelerometer.start();
         }
 
-        double read_accelerometer () const {
+        void read_accelerometer (volatile double &acosAxis, volatile double &asinAxis) const {
             int16_t individualReadings[ACCEL_AVERAGING_BUFFER_LENGTH][3];
-            int32_t total = 0;
+            int32_t acosAxisTotal = 0;
+            int32_t asinAxisTotal = 0;
 
             for (unsigned int i = 0; i < ACCEL_AVERAGING_BUFFER_LENGTH; ++i)
                 this->m_accelerometer.read(individualReadings[i]);
-            for (unsigned int i = 0; i < ACCEL_AVERAGING_BUFFER_LENGTH; ++i)
-                total += individualReadings[i][ACCEL_AXIS];
+            for (unsigned int i = 0; i < ACCEL_AVERAGING_BUFFER_LENGTH; ++i) {
+                asinAxisTotal += individualReadings[i][ACCEL_AXIS_ASIN];
+                acosAxisTotal += individualReadings[i][ACCEL_AXIS_ACOS];
+            }
 
-            return ADXL345::scale(total, ACCELEROMETER_RANGE) / ACCEL_AVERAGING_BUFFER_LENGTH;
+            acosAxis = ADXL345::scale(acosAxisTotal, ACCELEROMETER_RANGE) / ACCEL_AVERAGING_BUFFER_LENGTH;
+            asinAxis = ADXL345::scale(asinAxisTotal, ACCELEROMETER_RANGE) / ACCEL_AVERAGING_BUFFER_LENGTH;
         }
 
         double read_gyro () const {

@@ -41,7 +41,8 @@ extern uint32_t           LOGGER_STACK[];
 extern const size_t       LOG_BUFFER_SIZE;
 extern const unsigned int LOG_FREQUENCY;
 
-extern volatile double       g_accelValue;
+extern volatile double       g_accelValueAcosAxis;
+extern volatile double       g_accelValueAsinAxis;
 extern volatile double       g_gyroValue;
 extern volatile unsigned int g_sensorReaderTimer;
 extern volatile double       g_angle;
@@ -68,7 +69,8 @@ class Logger: public Runnable {
             m_printer << "Angle,"
                     "Accelerometer Angle,"
                     "Gyroscope Angle,"
-                    "Accelerometer Value,"
+                    "Accelerometer acos() Value,"
+                    "Accelerometer asin() Value,"
                     "Gyroscope Value,"
                     "Angle Timer (us),"
                     "Sensor Timer (us),"
@@ -81,7 +83,8 @@ class Logger: public Runnable {
                     m_printer << g_angle << ','
                               << g_accelAngle << ','
                               << g_gyroAngle << ','
-                              << g_accelValue << ','
+                              << g_accelValueAcosAxis << ','
+                              << g_accelValueAsinAxis << ','
                               << g_gyroValue << ','
                               << g_angleComputerTimer << ','
                               << g_sensorReaderTimer << ','
