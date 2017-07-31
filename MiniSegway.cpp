@@ -26,8 +26,10 @@
 
 #include "AngleComputer.h"
 #include "SensorReader.h"
+#ifdef LOG
 #include "Logger.h"
 #include "SdLogger.h"
+#endif
 
 #include <PropWare/hmi/output/ws2812.h>
 
@@ -64,12 +66,14 @@ volatile unsigned int g_sensorReaderTimer;
 void error_led (const unsigned int color);
 
 int main () {
-    CharQueue persistentLogQueue(logBuffer);
-
     const auto angleComputerCogID = AngleComputer::trigger();
     const auto sensorReaderCogID  = SensorReader::trigger();
+
+#ifdef LOG
+    CharQueue persistentLogQueue(logBuffer);
     const auto loggerCogID        = Logger::trigger(persistentLogQueue);
     SdLogger::trigger(persistentLogQueue);
+#endif
 
 
     auto timer = CNT + SECOND / LOG_FREQUENCY;
@@ -82,8 +86,10 @@ int main () {
 
     cogstop(angleComputerCogID);
     cogstop(sensorReaderCogID);
+#ifdef LOG
     cogstop(loggerCogID);
     // DO NOT force a shutdown of the SD logger. It monitors g_hardFault and will do a safe shutdown by itself
+#endif
 
     error_led(g_hardFault);
 }
