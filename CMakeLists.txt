@@ -10,5 +10,8 @@ set(BOARD dna)
 create_executable(${PROJECT_NAME}
     MiniSegway
     AngleComputer
-    SensorReader)
+    SensorReader
+    Logger
+    SdLogger)
 target_link_libraries(${PROJECT_NAME} m)
+#target_compile_definitions(${PROJECT_NAME} PUBLIC LOG)

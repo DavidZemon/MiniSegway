@@ -1,8 +1,27 @@
 /**
- * @file    SensorReader.h
+ * @file        SensorReader.h
  *
- * @author  David Zemon
- * @project MiniSegway
+ * @author      David Zemon
+ * @project     MiniSegway
+ *
+ * @copyright
+ * The MIT License (MIT)<br>
+ * <br>Copyright (c) 2013 David Zemon<br>
+ * <br>Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:<br>
+ * <br>The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.<br>
+ * <br>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #pragma once
@@ -26,7 +45,7 @@ extern const size_t       SENSOR_READER_STACK_SIZE;
 extern uint32_t           SENSOR_READER_STACK[];
 extern const unsigned int SENSOR_UPDATE_FREQUENCY;
 
-extern volatile bool         g_hardFault;
+extern volatile unsigned int g_hardFault;
 extern volatile bool         g_sensorValuesReady;
 extern volatile double       g_accelValue;
 extern volatile double       g_gyroValue;
@@ -34,11 +53,11 @@ extern volatile unsigned int g_sensorReaderTimer;
 
 class SensorReader: public Runnable {
     public:
-        static const Pin::Mask    SCLK             = Pin::Mask::P0;
-        static const Pin::Mask    MOSI             = Pin::Mask::P1;
-        static const Pin::Mask    MISO             = Pin::Mask::P2;
-        static const Pin::Mask    ACCELEROMETER_CS = Pin::Mask::P3;
-        static const Pin::Mask    GYRO_CS          = Pin::Mask::P4;
+        static const Pin::Mask    SCLK             = Pin::Mask::P4;
+        static const Pin::Mask    MOSI             = Pin::Mask::P5;
+        static const Pin::Mask    MISO             = Pin::Mask::P6;
+        static const Pin::Mask    ACCELEROMETER_CS = Pin::Mask::P7;
+        static const Pin::Mask    GYRO_CS          = Pin::Mask::P8;
         static const unsigned int SPI_FREQ         = 900000;
 
         static const L3G::DPSMode      GYRO_RESOLUTION         = L3G::DPS_250;
@@ -66,9 +85,6 @@ class SensorReader: public Runnable {
             auto timer = CNT + updatePeriodInTicks;
             while (1) {
                 volatile auto fullLoopStart = CNT;
-                // If another thread through an error, stop
-                if (g_hardFault)
-                    while(1);
 
                 g_accelValue        = this->read_accelerometer();
                 g_gyroValue         = this->read_gyro();
