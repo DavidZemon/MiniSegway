@@ -26,9 +26,12 @@
 
 #include "AngleComputer.h"
 #include "SensorReader.h"
+
 #ifdef LOG
 #include "Logger.h"
 #include "SdLogger.h"
+const size_t LOGGER_STACK_SIZE = 80;
+uint32_t     LOGGER_STACK[LOGGER_STACK_SIZE];
 #endif
 
 #include <PropWare/hmi/output/ws2812.h>
@@ -39,8 +42,6 @@ const size_t ANGLE_COMPUTER_STACK_SIZE = 256;
 uint32_t     ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
 const size_t SENSOR_READER_STACK_SIZE  = 160;
 uint32_t     SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
-const size_t LOGGER_STACK_SIZE         = 80;
-uint32_t     LOGGER_STACK[LOGGER_STACK_SIZE];
 const size_t SD_LOGGER_STACK_SIZE      = 160;
 uint32_t     SD_LOGGER_STACK[SD_LOGGER_STACK_SIZE];
 
@@ -71,7 +72,7 @@ int main () {
     const auto sensorReaderCogID  = SensorReader::trigger();
 
 #ifdef LOG
-    CharQueue persistentLogQueue(logBuffer);
+    CharQueue  persistentLogQueue(logBuffer);
     const auto loggerCogID        = Logger::trigger(persistentLogQueue);
     SdLogger::trigger(persistentLogQueue);
 #endif
