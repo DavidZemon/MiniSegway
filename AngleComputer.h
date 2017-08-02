@@ -55,7 +55,7 @@ extern volatile bool         g_sensorValuesReady;
 class AngleComputer: public Runnable {
     public:
         static constexpr double MAX_LEAN             = 15.0;
-        static constexpr double ACCELEROMETER_WEIGHT = 0.5;
+        static constexpr double ACCELEROMETER_WEIGHT = 0.2;
         static constexpr double GYRO_WEIGHT          = 1 - ACCELEROMETER_WEIGHT;
     public:
         static int8_t trigger () {
@@ -74,11 +74,8 @@ class AngleComputer: public Runnable {
                     while (1);
 
                 const double accelerometerAngle = to_degrees(g_accelValueAsinAxis, g_accelValueAcosAxis);
-                //const double accelerometerAngle = (accelerometerAngleAcos + accelerometerAngleAsin) / 2;
                 const double leanFromGyro          = g_angle + g_gyroValue / SENSOR_UPDATE_FREQUENCY;
 
-                //g_accelAngleAcos = accelerometerAngleAcos;
-                //g_accelAngleAsin = accelerometerAngleAsin;
                 g_accelAngle = accelerometerAngle;
                 g_gyroAngle  = leanFromGyro;
                 g_angle      = accelerometerAngle * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
@@ -91,8 +88,7 @@ class AngleComputer: public Runnable {
         }
 
     private:
-        static double to_degrees (double value, double value2) {
-            //value        = fmin(fmax(value, -1), 1);
+        static double to_degrees (const double value, const double value2) {
             double angle = atan2(value, value2);
             return angle * 180 / M_PI;
         }
