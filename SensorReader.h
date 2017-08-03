@@ -67,6 +67,7 @@ class SensorReader: public Runnable {
         static const L3G::Axis         GYRO_AXIS               = L3G::Y;
         static const ADXL345::Axis     ACCEL_AXIS_ACOS         = ADXL345::Z;
         static const ADXL345::Axis     ACCEL_AXIS_ASIN         = ADXL345::Y;
+        static constexpr double        GYRO_OFFSET             = 1.8;
 
         // Gyro data rate = 760 Hz, with Prop polling @ 100 Hz = Max averaging buffer of 7
         static const unsigned int GYRO_AVERAGING_BUFFER_LENGTH  = 7;
@@ -115,7 +116,7 @@ class SensorReader: public Runnable {
         void init_gyro () const {
             this->m_gyro.set_dps(GYRO_RESOLUTION);
             this->m_gyro.write(L3G::Register::CTRL_REG1, 0b11001111); // Data rate = 760 Hz, Low-pass filter = 30 Hz
-            this->m_gyro.write(L3G::Register::CTRL_REG2, 6); // High-pass filter = 0.9 Hz
+            this->m_gyro.write(L3G::Register::CTRL_REG2, 4); // High-pass filter = 3.5 Hz
             this->m_gyro.write(L3G::Register::CTRL_REG5, PropWare::BIT_6 | PropWare::BIT_4); // Enable FIFO & HP filter
             this->m_gyro.write(L3G::Register::FIFO_CTRL_REG, PropWare::BIT_6); // Set FIFO for stream mode
         }
@@ -153,10 +154,10 @@ class SensorReader: public Runnable {
         }
 
         double read_gyro () const {
-            int               total = 0;
-            for (unsigned int i     = 0; i < GYRO_AVERAGING_BUFFER_LENGTH; ++i)
+            int               total          = 0;
+            for (unsigned int i              = 0; i < GYRO_AVERAGING_BUFFER_LENGTH; ++i)
                 total += this->m_gyro.read(GYRO_AXIS);
-            return L3G::to_dps(total, GYRO_RESOLUTION) / GYRO_AVERAGING_BUFFER_LENGTH;
+            return L3G::to_dps(total, GYRO_RESOLUTION) / GYRO_AVERAGING_BUFFER_LENGTH - GYRO_OFFSET;
         }
 
     private:
