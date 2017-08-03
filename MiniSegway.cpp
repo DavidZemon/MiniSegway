@@ -27,13 +27,6 @@
 #include "AngleComputer.h"
 #include "SensorReader.h"
 
-#ifdef LOG
-#include "Logger.h"
-#include "SdLogger.h"
-const size_t LOGGER_STACK_SIZE = 80;
-uint32_t     LOGGER_STACK[LOGGER_STACK_SIZE];
-#endif
-
 #include <PropWare/hmi/output/ws2812.h>
 
 using PropWare::WS2812;
@@ -42,17 +35,32 @@ const size_t ANGLE_COMPUTER_STACK_SIZE = 256;
 uint32_t     ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
 const size_t SENSOR_READER_STACK_SIZE  = 160;
 uint32_t     SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
-const size_t SD_LOGGER_STACK_SIZE      = 160;
-uint32_t     SD_LOGGER_STACK[SD_LOGGER_STACK_SIZE];
-
-const size_t LOG_BUFFER_SIZE = 512;
-char         logBuffer[LOG_BUFFER_SIZE];
 
 const unsigned int SENSOR_UPDATE_FREQUENCY = 100;
-const unsigned int LOG_FREQUENCY           = 40;
 
 const unsigned int FLAT_ON_FACE_COLOR  = 0x080000;
 const unsigned int SD_CARD_ERROR_COLOR = 0x080800;
+
+#if defined(LOG_SD)
+#include "Logger.h"
+#include "SdLogger.h"
+const size_t     SD_LOGGER_STACK_SIZE       = 196;
+uint32_t         SD_LOGGER_STACK[SD_LOGGER_STACK_SIZE];
+const size_t     PERSISTENT_LOG_BUFFER_SIZE = 512;
+char             PERSISTENT_LOG_BUFFER[PERSISTENT_LOG_BUFFER_SIZE];
+static CharQueue persistentLogQueue(PERSISTENT_LOG_BUFFER);
+#endif
+
+#if LOG_CONSOLE == LOG_CONSOLE_LONG
+#include "Logger.h"
+#include <PropWare/serial/uart/uarttx.h>
+const size_t CONSOLE_LOGGER_STACK_SIZE = 128;
+uint32_t     CONSOLE_LOGGER_STACK[CONSOLE_LOGGER_STACK_SIZE];
+using PropWare::UARTTX;
+static UARTTX g_serialBus;
+#elif LOG_CONSOLE == LOG_CONSOLE_SHORT
+const unsigned int LOG_FREQUENCY = 40;
+#endif
 
 volatile unsigned int g_hardFault         = 0;
 volatile double       g_angle             = 0;
@@ -71,13 +79,24 @@ int main () {
     const auto angleComputerCogID = AngleComputer::trigger();
     const auto sensorReaderCogID  = SensorReader::trigger();
 
-#ifdef LOG
-    CharQueue  persistentLogQueue(logBuffer);
-    const auto loggerCogID        = Logger::trigger(persistentLogQueue);
+#if LOG_SD
     SdLogger::trigger(persistentLogQueue);
+    auto       printerReady          = [] () -> bool {
+        return persistentLogQueue.size() < (PERSISTENT_LOG_BUFFER_SIZE / 2);
+    };
+    Logger     persistantLogger(SD_LOGGER_STACK, printerReady, persistentLogQueue);
+    const auto persistantLoggerCogID = Runnable::invoke(persistantLogger);
 #endif
 
+#if LOG_CONSOLE == LOG_CONSOLE_LONG
+    const auto   consolePrinterReady    = [] () -> bool { return true; };
+    const auto   initFunction           = [] () -> void { DIRA |= g_serialBus.get_tx_mask(); };
+    const Logger fullConsoleLogger(CONSOLE_LOGGER_STACK, consolePrinterReady, g_serialBus, initFunction);
+    const auto   fullConsoleLoggerCogID = Runnable::invoke(fullConsoleLogger);
+    Utility::bit_clear(DIRA, static_cast<PropWare::Bit>(g_serialBus.get_tx_mask())); // Release the TX pin
+#endif
 
+#if LOG_CONSOLE == LOG_CONSOLE_SHORT
     auto timer = CNT + SECOND / LOG_FREQUENCY;
     while (!g_hardFault) {
         pwOut.puts("Angle: ");
@@ -85,11 +104,18 @@ int main () {
         pwOut.put_char('\n');
         timer = waitcnt2(timer, SECOND / LOG_FREQUENCY);
     }
+#else
+    while (!g_hardFault)
+        waitcnt(MILLISECOND + CNT);
+#endif
 
     cogstop(angleComputerCogID);
     cogstop(sensorReaderCogID);
-#ifdef LOG
-    cogstop(loggerCogID);
+#if LOG_CONSOLE == LOG_CONSOLE_LONG
+    cogstop(fullConsoleLoggerCogID);
+#endif
+#ifdef LOG_SD
+    cogstop(persistantLoggerCogID);
     // DO NOT force a shutdown of the SD logger. It monitors g_hardFault and will do a safe shutdown by itself
 #endif
 

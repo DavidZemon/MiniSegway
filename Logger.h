@@ -29,16 +29,14 @@
 #include <PropWare/memory/sd.h>
 #include <PropWare/filesystem/fat/fatfilewriter.h>
 #include <PropWare/concurrent/runnable.h>
-#include <PropWare/utility/collection/charqueue.h>
+#include <PropWare/utility/utility.h>
 
 using PropWare::PrintCapable;
 using PropWare::Printer;
 using PropWare::Runnable;
-using PropWare::CharQueue;
+using PropWare::Utility;
 
-extern const size_t       LOGGER_STACK_SIZE;
-extern uint32_t           LOGGER_STACK[];
-extern const size_t       LOG_BUFFER_SIZE;
+extern const size_t       PERSISTENT_LOG_BUFFER_SIZE;
 extern const unsigned int LOG_FREQUENCY;
 
 extern volatile double       g_accelValueAcosAxis;
@@ -52,19 +50,23 @@ extern volatile unsigned int g_angleComputerTimer;
 
 class Logger: public Runnable {
     public:
-        static int8_t trigger (CharQueue &queue) {
-            static Logger instance(queue);
-            return Runnable::invoke(instance);
-        }
+        static const unsigned int LOG_FREQUENCY = 50;
 
-        Logger (CharQueue &queue)
-                : Runnable(LOGGER_STACK, LOGGER_STACK_SIZE),
-                  m_queue(&queue),
-                  m_printer(queue) {
+    public:
+        template<size_t N>
+        Logger (const uint32_t (&stack)[N], bool (*isPrinterReady) (), PrintCapable &printCapable,
+                void(*initFunction) () = NULL)
+                : Runnable(stack),
+                  m_isPrinterReady(isPrinterReady),
+                  m_printer(printCapable),
+                  m_initFunction(initFunction) {
         }
 
         virtual void run () {
-            m_printer << Printer::Format(5, '0', 10, 3);
+            if (this->m_initFunction)
+                this->m_initFunction();
+
+            m_printer << Printer::Format(6, '0', 10, 3);
 
             m_printer << "Angle,"
                     "Accelerometer Angle,"
@@ -76,10 +78,12 @@ class Logger: public Runnable {
                     "Sensor Timer (us),"
                     "Logger Timer (us)\n";
 
-            volatile auto timer = CNT;
-            unsigned int  logTime  = 0;
+            volatile auto timer         = CNT;
+            unsigned int  logTime       = 0;
+            const auto    periodInTicks = SECOND / LOG_FREQUENCY;
+            auto          loopTimer     = CNT + periodInTicks;
             while (1) {
-                if (m_queue->size() < (LOG_BUFFER_SIZE / 2)) {
+                if (this->m_isPrinterReady()) {
                     m_printer << g_angle << ','
                               << g_accelAngle << ','
                               << g_gyroAngle << ','
@@ -91,12 +95,17 @@ class Logger: public Runnable {
                               << logTime
                               << '\n';
                     logTime = Utility::measure_time_interval(timer);
-                    timer = CNT;
+                    timer   = CNT;
+
+                    // Only do a pause if the print invocation didn't take too long
+                    if ((logTime + 200) < (1000000 / LOG_FREQUENCY))
+                        loopTimer = waitcnt2(loopTimer, periodInTicks);
                 }
             }
         }
 
     private:
-        CharQueue *m_queue;
-        Printer   m_printer;
+        bool (*m_isPrinterReady) ();
+        Printer m_printer;
+        void (*m_initFunction) ();
 };
