@@ -50,7 +50,7 @@ extern volatile unsigned int g_angleComputerTimer;
 
 class Logger: public Runnable {
     public:
-        static const unsigned int LOG_FREQUENCY = 50;
+        static const unsigned int LOG_FREQUENCY = 100;
 
     public:
         template<size_t N>
@@ -100,6 +100,8 @@ class Logger: public Runnable {
                     // Only do a pause if the print invocation didn't take too long
                     if ((logTime + 200) < (1000000 / LOG_FREQUENCY))
                         loopTimer = waitcnt2(loopTimer, periodInTicks);
+                    else
+                        loopTimer = CNT + periodInTicks;
                 }
             }
         }

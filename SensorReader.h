@@ -41,17 +41,6 @@ using PropWare::Port;
 using PropWare::Runnable;
 using PropWare::Utility;
 
-extern const size_t       SENSOR_READER_STACK_SIZE;
-extern uint32_t           SENSOR_READER_STACK[];
-extern const unsigned int SENSOR_UPDATE_FREQUENCY;
-
-extern volatile unsigned int g_hardFault;
-extern volatile bool         g_sensorValuesReady;
-extern volatile double       g_accelValueAcosAxis;
-extern volatile double       g_accelValueAsinAxis;
-extern volatile double       g_gyroValue;
-extern volatile unsigned int g_sensorReaderTimer;
-
 class SensorReader: public Runnable {
     public:
         static const Pin::Mask    SCLK             = Pin::Mask::P4;
@@ -59,7 +48,7 @@ class SensorReader: public Runnable {
         static const Pin::Mask    MISO             = Pin::Mask::P6;
         static const Pin::Mask    ACCELEROMETER_CS = Pin::Mask::P7;
         static const Pin::Mask    GYRO_CS          = Pin::Mask::P8;
-        static const unsigned int SPI_FREQ         = 900000;
+        static const unsigned int SPI_FREQ         = 1000000;
 
         static const L3G::DPSMode      GYRO_RESOLUTION         = L3G::DPS_250;
         static const ADXL345::Range    ACCELEROMETER_RANGE     = ADXL345::_2G;
@@ -67,12 +56,7 @@ class SensorReader: public Runnable {
         static const L3G::Axis         GYRO_AXIS               = L3G::Y;
         static const ADXL345::Axis     ACCEL_AXIS_ACOS         = ADXL345::Z;
         static const ADXL345::Axis     ACCEL_AXIS_ASIN         = ADXL345::Y;
-        static constexpr double        GYRO_OFFSET             = 1.8;
-
-        // Gyro data rate = 760 Hz, with Prop polling @ 100 Hz = Max averaging buffer of 7
-        static const unsigned int GYRO_AVERAGING_BUFFER_LENGTH  = 7;
-        // Accel data rate = 3200 Hz, with Prop polling @ 100 Hz = Max average buffer of 32
-        static const unsigned int ACCEL_AVERAGING_BUFFER_LENGTH = 16;
+        static const unsigned int      GYRO_OFFSET             = 224;
 
     public:
         static int8_t trigger () {
@@ -116,9 +100,8 @@ class SensorReader: public Runnable {
         void init_gyro () const {
             this->m_gyro.set_dps(GYRO_RESOLUTION);
             this->m_gyro.write(L3G::Register::CTRL_REG1, 0b11001111); // Data rate = 760 Hz, Low-pass filter = 30 Hz
+            this->m_gyro.write(L3G::Register::CTRL_REG5, PropWare::BIT_4); // Enable HP filter
             this->m_gyro.write(L3G::Register::CTRL_REG2, 4); // High-pass filter = 3.5 Hz
-            this->m_gyro.write(L3G::Register::CTRL_REG5, PropWare::BIT_6 | PropWare::BIT_4); // Enable FIFO & HP filter
-            this->m_gyro.write(L3G::Register::FIFO_CTRL_REG, PropWare::BIT_6); // Set FIFO for stream mode
         }
 
         void init_accelerometer () const {
@@ -130,34 +113,19 @@ class SensorReader: public Runnable {
             dataFormat.fields.range = ACCELEROMETER_RANGE;
             this->m_accelerometer.write(ADXL345::Register::DATA_FORMAT, dataFormat.raw);
 
-            ADXL345::FIFOControl fifoControl;
-            fifoControl.fields.fifoMode = ADXL345::FIFOMode::STREAM;
-            this->m_accelerometer.write(ADXL345::Register::FIFO_CONTROL, fifoControl.raw);
-
             this->m_accelerometer.start();
         }
 
         void read_accelerometer (volatile double &acosAxis, volatile double &asinAxis) const {
-            int16_t individualReadings[ACCEL_AVERAGING_BUFFER_LENGTH][3];
-            int32_t acosAxisTotal = 0;
-            int32_t asinAxisTotal = 0;
-
-            for (unsigned int i = 0; i < ACCEL_AVERAGING_BUFFER_LENGTH; ++i)
-                this->m_accelerometer.read(individualReadings[i]);
-            for (unsigned int i = 0; i < ACCEL_AVERAGING_BUFFER_LENGTH; ++i) {
-                asinAxisTotal += individualReadings[i][ACCEL_AXIS_ASIN];
-                acosAxisTotal += individualReadings[i][ACCEL_AXIS_ACOS];
-            }
-
-            acosAxis = ADXL345::scale(acosAxisTotal, ACCELEROMETER_RANGE) / ACCEL_AVERAGING_BUFFER_LENGTH;
-            asinAxis = ADXL345::scale(asinAxisTotal, ACCELEROMETER_RANGE) / ACCEL_AVERAGING_BUFFER_LENGTH;
+            int16_t individualReadings[3];
+            this->m_accelerometer.read(individualReadings);
+            acosAxis = ADXL345::scale(individualReadings[ACCEL_AXIS_ACOS], ACCELEROMETER_RANGE);
+            asinAxis = ADXL345::scale(individualReadings[ACCEL_AXIS_ASIN], ACCELEROMETER_RANGE);
         }
 
         double read_gyro () const {
-            int               total          = 0;
-            for (unsigned int i              = 0; i < GYRO_AVERAGING_BUFFER_LENGTH; ++i)
-                total += this->m_gyro.read(GYRO_AXIS);
-            return L3G::to_dps(total, GYRO_RESOLUTION) / GYRO_AVERAGING_BUFFER_LENGTH - GYRO_OFFSET;
+            const auto raw = this->m_gyro.read(GYRO_AXIS);
+            return L3G::to_dps(raw - GYRO_OFFSET, GYRO_RESOLUTION);
         }
 
     private:

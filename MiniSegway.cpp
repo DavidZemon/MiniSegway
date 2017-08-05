@@ -36,7 +36,7 @@ uint32_t     ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
 const size_t SENSOR_READER_STACK_SIZE  = 160;
 uint32_t     SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
 
-const unsigned int SENSOR_UPDATE_FREQUENCY = 100;
+const unsigned int SENSOR_UPDATE_FREQUENCY = 250;
 
 const unsigned int FLAT_ON_FACE_COLOR  = 0x080000;
 const unsigned int SD_CARD_ERROR_COLOR = 0x080800;
@@ -54,12 +54,12 @@ static CharQueue persistentLogQueue(PERSISTENT_LOG_BUFFER);
 #if LOG_CONSOLE == LOG_CONSOLE_LONG
 #include "Logger.h"
 #include <PropWare/serial/uart/uarttx.h>
-const size_t CONSOLE_LOGGER_STACK_SIZE = 128;
+const size_t CONSOLE_LOGGER_STACK_SIZE = 196;
 uint32_t     CONSOLE_LOGGER_STACK[CONSOLE_LOGGER_STACK_SIZE];
 using PropWare::UARTTX;
 static UARTTX g_serialBus;
 #elif LOG_CONSOLE == LOG_CONSOLE_SHORT
-const unsigned int LOG_FREQUENCY = 40;
+const unsigned int LOG_FREQUENCY = 100;
 #endif
 
 volatile unsigned int g_hardFault         = 0;
@@ -97,12 +97,13 @@ int main () {
 #endif
 
 #if LOG_CONSOLE == LOG_CONSOLE_SHORT
-    auto timer = CNT + SECOND / LOG_FREQUENCY;
+    const auto period = SECOND / LOG_FREQUENCY;
+    auto timer = CNT + period;
     while (!g_hardFault) {
-        pwOut.puts("Angle: ");
-        pwOut.put_float(g_angle, 5, 3, '0');
+        //pwOut.puts("Angle: ");
+        pwOut.put_float(g_gyroValue, 6, 3, '0');
         pwOut.put_char('\n');
-        timer = waitcnt2(timer, SECOND / LOG_FREQUENCY);
+        timer = waitcnt2(timer, period);
     }
 #else
     while (!g_hardFault)

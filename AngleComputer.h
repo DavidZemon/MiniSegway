@@ -33,24 +33,10 @@
 #include <PropWare/sensor/accelerometer/adxl345.h>
 #include <PropWare/utility/utility.h>
 
+#include "globals.h"
+
 using PropWare::Runnable;
 using PropWare::Utility;
-
-extern const size_t ANGLE_COMPUTER_STACK_SIZE;
-extern uint32_t     ANGLE_COMPUTER_STACK[];
-
-extern const unsigned int SENSOR_UPDATE_FREQUENCY;
-extern const unsigned int FLAT_ON_FACE_COLOR;
-
-extern volatile unsigned int g_hardFault;
-extern volatile double       g_accelAngle;
-extern volatile double       g_gyroAngle;
-extern volatile double       g_angle;
-extern volatile double       g_accelValueAcosAxis;
-extern volatile double       g_accelValueAsinAxis;
-extern volatile double       g_gyroValue;
-extern volatile unsigned int g_angleComputerTimer;
-extern volatile bool         g_sensorValuesReady;
 
 class AngleComputer: public Runnable {
     public:
