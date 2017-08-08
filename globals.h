@@ -24,26 +24,39 @@
  * SOFTWARE.
  */
 
+#include <ArduinoJson.hpp>
+using ArduinoJson::JsonObject;
+
+#define I2C_BUFFER_SIZE 256
 
 extern const size_t ANGLE_COMPUTER_STACK_SIZE;
-extern uint32_t     ANGLE_COMPUTER_STACK[];
+extern const size_t MESSAGE_RECEIVER_STACK_SIZE;
+extern const size_t MESSAGE_HANDLER_STACK_SIZE;
+
+extern uint32_t ANGLE_COMPUTER_STACK[];
+extern uint32_t SENSOR_READER_STACK[];
+extern uint32_t MESSAGE_RECEIVER_STACK[];
+extern uint32_t MESSAGE_HANDLER_STACK[];
+extern uint8_t  I2C_INTERNAL_BUFFER[];
 
 extern const unsigned int SENSOR_UPDATE_FREQUENCY;
 extern const unsigned int FLAT_ON_FACE_COLOR;
 
 extern const size_t       SENSOR_READER_STACK_SIZE;
-extern uint32_t           SENSOR_READER_STACK[];
 extern const unsigned int SENSOR_UPDATE_FREQUENCY;
 
-extern volatile unsigned int g_hardFault;
-extern volatile double       g_accelAngle;
-extern volatile double       g_gyroAngle;
-extern volatile double       g_angle;
-extern volatile double       g_accelValueAcosAxis;
-extern volatile double       g_accelValueAsinAxis;
-extern volatile double       g_gyroValue;
-extern volatile unsigned int g_sensorReaderTimer;
-extern volatile unsigned int g_angleComputerTimer;
-extern volatile bool         g_sensorValuesReady;
-
-
+extern volatile unsigned int            g_hardFault;
+extern volatile double                  g_accelAngle;
+extern volatile double                  g_gyroAngle;
+extern volatile double                  g_angle;
+extern volatile double                  g_accelValueAcosAxis;
+extern volatile double                  g_accelValueAsinAxis;
+extern volatile double                  g_gyroValue;
+extern volatile unsigned int            g_sensorReaderTimer;
+extern volatile unsigned int            g_angleComputerTimer;
+extern volatile bool                    g_sensorValuesReady;
+extern volatile ArduinoJson::JsonObject *g_jsonObject;
+extern volatile bool                    g_messageReceived;
+extern volatile double                  g_idealAngle;
+extern volatile double                  g_turn;
+extern volatile double                  g_trim;

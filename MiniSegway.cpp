@@ -24,22 +24,29 @@
  * SOFTWARE.
  */
 
+#include "MessageReceiver.h"
 #include "AngleComputer.h"
 #include "SensorReader.h"
+#include "MessageHandler.h"
 
 #include <PropWare/hmi/output/ws2812.h>
 
 using PropWare::WS2812;
 
-const size_t ANGLE_COMPUTER_STACK_SIZE = 256;
-uint32_t     ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
-const size_t SENSOR_READER_STACK_SIZE  = 160;
-uint32_t     SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
+const size_t ANGLE_COMPUTER_STACK_SIZE   = 256;
+const size_t SENSOR_READER_STACK_SIZE    = 160;
+const size_t MESSAGE_RECEIVER_STACK_SIZE = 64;
+const size_t MESSAGE_HANDLER_STACK_SIZE  = 128;
+
+uint32_t ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
+uint32_t SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
+uint32_t MESSAGE_RECEIVER_STACK[MESSAGE_RECEIVER_STACK_SIZE];
+uint32_t MESSAGE_HANDLER_STACK[MESSAGE_HANDLER_STACK_SIZE];
+uint8_t  I2C_INTERNAL_BUFFER[I2C_BUFFER_SIZE];
 
 const unsigned int SENSOR_UPDATE_FREQUENCY = 250;
-
-const unsigned int FLAT_ON_FACE_COLOR  = 0x080000;
-const unsigned int SD_CARD_ERROR_COLOR = 0x080800;
+const unsigned int FLAT_ON_FACE_COLOR      = 0x080000;
+const unsigned int SD_CARD_ERROR_COLOR     = 0x080800;
 
 #if defined(LOG_SD)
 #include "Logger.h"
@@ -72,12 +79,19 @@ volatile double       g_accelValueAsinAxis;
 volatile double       g_gyroValue;
 volatile unsigned int g_angleComputerTimer;
 volatile unsigned int g_sensorReaderTimer;
+volatile JsonObject   *g_jsonObject;
+volatile bool         g_messageReceived   = false;
+volatile double       g_idealAngle;
+volatile double       g_turn;
+volatile double       g_trim;
 
 void error_led (const unsigned int color);
 
 int main () {
-    const auto angleComputerCogID = AngleComputer::trigger();
-    const auto sensorReaderCogID  = SensorReader::trigger();
+    const auto angleComputerCogID   = AngleComputer::trigger();
+    const auto sensorReaderCogID    = SensorReader::trigger();
+    const auto messageReceiverCogID = MessageReceiver::trigger();
+    const auto messageHandlerCogID  = MessageHandler::trigger();
 
 #if LOG_SD
     SdLogger::trigger(persistentLogQueue);
@@ -112,6 +126,8 @@ int main () {
 
     cogstop(angleComputerCogID);
     cogstop(sensorReaderCogID);
+    cogstop(messageReceiverCogID);
+    cogstop(messageHandlerCogID);
 #if LOG_CONSOLE == LOG_CONSOLE_LONG
     cogstop(fullConsoleLoggerCogID);
 #endif
