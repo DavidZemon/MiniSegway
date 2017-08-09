@@ -3,7 +3,7 @@ find_package(PropWare 3.0 REQUIRED)
 
 project(MiniSegway)
 
-set(32_BIT_DOUBLES OFF)
+#set(32_BIT_DOUBLES OFF)
 set(MODEL cmm)
 set(BOARD dna)
 
@@ -21,5 +21,5 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
     LOG_CONSOLE_LONG=2)
 
 # Set logging options
-#target_compile_definitions(${PROJECT_NAME} PUBLIC LOG_CONSOLE=LOG_CONSOLE_LONG)
+target_compile_definitions(${PROJECT_NAME} PUBLIC LOG_CONSOLE=LOG_CONSOLE_LONG)
 #target_compile_definitions(${PROJECT_NAME} PUBLIC LOG_SD)

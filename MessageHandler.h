@@ -59,8 +59,8 @@ class MessageHandler: public Runnable {
                 const char *message = (*const_cast<JsonObject *>(g_jsonObject))["message"];
 
                 if (0 == strcmp(message, "trim")) {
-                    const double trimAdjustment = (*const_cast<JsonObject *>(g_jsonObject))["value"];
-                    g_trim += trimAdjustment;
+                    const bool trimAdjustment = (*const_cast<JsonObject *>(g_jsonObject))["value"];
+                    g_trim += trimAdjustment ? 0.05 : -0.05;
                     g_idealAngle += trimAdjustment;
                     eepromBus.put(EEPROM_ADDRESS, trimAddress, (uint8_t *) &g_trim, sizeof(g_trim));
                 } else if (0 == strcmp(message, "move")) {
