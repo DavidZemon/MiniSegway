@@ -95,10 +95,10 @@ volatile double       g_trim              = 1.2;
 volatile unsigned int g_leftDuty          = 0;
 volatile unsigned int g_rightDuty         = 0;
 
-volatile double g_pidError;
-volatile double g_pidIntegral;
-volatile double g_pidDerivative;
-volatile double g_pidOutput;
+volatile double  g_pidError;
+volatile double  g_pidIntegral;
+volatile double  g_pidDerivative;
+volatile int32_t g_pidOutput;
 
 void error_led (const unsigned int color);
 

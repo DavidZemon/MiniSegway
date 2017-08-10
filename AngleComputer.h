@@ -40,7 +40,6 @@ using PropWare::Utility;
 
 class AngleComputer: public Runnable {
     public:
-        static constexpr double MAX_LEAN             = 5.0;
         static constexpr double ACCELEROMETER_WEIGHT = 0.02;
         static constexpr double GYRO_WEIGHT          = 1 - ACCELEROMETER_WEIGHT;
     public:
@@ -70,7 +69,7 @@ class AngleComputer: public Runnable {
 #ifdef __PROPELLER_32BIT_DOUBLES__
 #define fabs fabsf
 #endif
-                if (fabs(g_angle) > MAX_LEAN)
+                if ((fabs(g_angle - g_trim)) > MAX_LEAN)
                     g_hardFault = FLAT_ON_FACE_COLOR;
 #ifdef __PROPELLER_32BIT_DOUBLES__
 #undef fabs

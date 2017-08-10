@@ -61,7 +61,6 @@ class MessageHandler: public Runnable {
                 if (0 == strcmp(message, "trim")) {
                     const bool trimAdjustment = (*const_cast<JsonObject *>(g_jsonObject))["value"];
                     g_trim += trimAdjustment ? 0.05 : -0.05;
-                    g_idealAngle += trimAdjustment;
                     eepromBus.put(EEPROM_ADDRESS, trimAddress, (uint8_t *) &g_trim, sizeof(g_trim));
                 } else if (0 == strcmp(message, "move")) {
                     const unsigned int direction = (*const_cast<JsonObject *>(g_jsonObject))["direction"];
@@ -71,8 +70,8 @@ class MessageHandler: public Runnable {
 #define sin sinf
 #define cos cosf
 #endif
-                    g_idealAngle = g_trim + magnitude / 100. * sin(direction);
-                    g_turn       = magnitude / 100. * cos(direction);
+                    g_idealAngle = magnitude * sin(direction) / 100;
+                    g_turn       = magnitude * cos(direction) / 100;
 #ifdef __PROPELLER_32BIT_DOUBLES__
 #undef sin
 #undef cos

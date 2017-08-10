@@ -37,7 +37,7 @@ using PropWare::Utility;
 
 class PIDController: public Runnable {
     public:
-        static constexpr double KP = 1024;
+        static constexpr double KP = MAX_DUTY / MAX_LEAN;
         static constexpr double KI = 0;
         static constexpr double KD = 0;
 
@@ -68,7 +68,7 @@ class PIDController: public Runnable {
 
                 g_newAngleReady = false;
 
-                auto pidResult = this->pid(g_angle);
+                auto pidResult = this->pid(g_angle - g_trim);
 
                 if (pidResult > 0) {
                     leftMotorDirection.write(0b01);
@@ -87,7 +87,7 @@ class PIDController: public Runnable {
         }
 
     private:
-        double pid (const double currentAngle) {
+        int32_t pid (const double currentAngle) {
             static double previousAngle = 0;
             static double integral      = 0;
 
@@ -103,7 +103,7 @@ class PIDController: public Runnable {
 
             previousAngle = currentAngle;
 
-            const auto output = KP * error + KI * integral + KD * derivative;
+            const int32_t output = static_cast<int32_t>(KP * error + KI * integral + KD * derivative);
 
             g_pidError      = error;
             g_pidIntegral   = integral;

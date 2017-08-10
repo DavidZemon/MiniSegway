@@ -28,6 +28,8 @@
 using ArduinoJson::JsonObject;
 
 #define I2C_BUFFER_SIZE 256
+#define MAX_LEAN        5
+#define MAX_DUTY        4096
 
 extern const size_t ANGLE_COMPUTER_STACK_SIZE;
 extern const size_t MESSAGE_RECEIVER_STACK_SIZE;
@@ -69,7 +71,7 @@ extern volatile double                  g_trim;
 extern volatile unsigned int            g_leftDuty;
 extern volatile unsigned int            g_rightDuty;
 
-extern volatile double g_pidError;
-extern volatile double g_pidIntegral;
-extern volatile double g_pidDerivative;
-extern volatile double g_pidOutput;
+extern volatile double  g_pidError;
+extern volatile double  g_pidIntegral;
+extern volatile double  g_pidDerivative;
+extern volatile int32_t g_pidOutput;
