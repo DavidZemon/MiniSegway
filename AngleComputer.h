@@ -40,7 +40,7 @@ using PropWare::Utility;
 
 class AngleComputer: public Runnable {
     public:
-        static constexpr double MAX_LEAN             = 15.0;
+        static constexpr double MAX_LEAN             = 5.0;
         static constexpr double ACCELEROMETER_WEIGHT = 0.02;
         static constexpr double GYRO_WEIGHT          = 1 - ACCELEROMETER_WEIGHT;
     public:
