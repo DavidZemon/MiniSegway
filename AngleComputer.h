@@ -62,12 +62,19 @@ class AngleComputer: public Runnable {
                 const double accelerometerAngle = to_degrees(g_accelValueAsinAxis, g_accelValueAcosAxis);
                 const double leanFromGyro       = g_angle + g_gyroValue / SENSOR_UPDATE_FREQUENCY;
 
-                g_accelAngle = accelerometerAngle;
-                g_gyroAngle  = leanFromGyro;
-                g_angle      = accelerometerAngle * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
+                g_accelAngle    = accelerometerAngle;
+                g_gyroAngle     = leanFromGyro;
+                g_angle         = accelerometerAngle * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
+                g_newAngleReady = true;
 
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#define fabs fabsf
+#endif
                 if (fabs(g_angle) > MAX_LEAN)
                     g_hardFault = FLAT_ON_FACE_COLOR;
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#undef fabs
+#endif
 
                 g_angleComputerTimer = Utility::measure_time_interval(fullLoopStart);
             }

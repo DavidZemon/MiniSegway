@@ -24,6 +24,8 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #include <PropWare/gpio/dualpwm.h>
 #include "globals.h"
 

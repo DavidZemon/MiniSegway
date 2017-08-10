@@ -24,11 +24,12 @@
  * SOFTWARE.
  */
 
+#include "PWMDriver.h"
+#include "PIDController.h"
 #include "MessageReceiver.h"
 #include "AngleComputer.h"
 #include "SensorReader.h"
 #include "MessageHandler.h"
-#include "PWMDriver.h"
 
 #include <PropWare/hmi/output/ws2812.h>
 
@@ -38,13 +39,15 @@ const size_t ANGLE_COMPUTER_STACK_SIZE   = 256;
 const size_t SENSOR_READER_STACK_SIZE    = 160;
 const size_t MESSAGE_RECEIVER_STACK_SIZE = 64;
 const size_t MESSAGE_HANDLER_STACK_SIZE  = 128;
-const size_t PWM_DRIVER_STACK_SIZE       = 64;
+const size_t PWM_DRIVER_STACK_SIZE       = 48;
+const size_t PID_CONTROLLER_STACK_SIZE   = 128;
 
 uint32_t ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
 uint32_t SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
 uint32_t MESSAGE_RECEIVER_STACK[MESSAGE_RECEIVER_STACK_SIZE];
 uint32_t MESSAGE_HANDLER_STACK[MESSAGE_HANDLER_STACK_SIZE];
 uint32_t PWM_DRIVER_STACK[PWM_DRIVER_STACK_SIZE];
+uint32_t PID_CONTROLLER_STACK[PID_CONTROLLER_STACK_SIZE];
 uint8_t  I2C_INTERNAL_BUFFER[I2C_BUFFER_SIZE];
 
 const unsigned int SENSOR_UPDATE_FREQUENCY = 250;
@@ -74,6 +77,7 @@ const unsigned int LOG_FREQUENCY = 100;
 
 volatile unsigned int g_hardFault         = 0;
 volatile double       g_angle             = 0;
+volatile bool         g_newAngleReady     = false;
 volatile double       g_accelAngle;
 volatile double       g_gyroAngle;
 volatile bool         g_sensorValuesReady = false;
@@ -82,13 +86,19 @@ volatile double       g_accelValueAsinAxis;
 volatile double       g_gyroValue;
 volatile unsigned int g_angleComputerTimer;
 volatile unsigned int g_sensorReaderTimer;
+volatile unsigned int g_pidControllerTimer;
 volatile JsonObject   *g_jsonObject;
 volatile bool         g_messageReceived   = false;
 volatile double       g_idealAngle;
 volatile double       g_turn;
-volatile double       g_trim;
+volatile double       g_trim              = 1.2;
 volatile unsigned int g_leftDuty          = 0;
 volatile unsigned int g_rightDuty         = 0;
+
+volatile double g_pidError;
+volatile double g_pidIntegral;
+volatile double g_pidDerivative;
+volatile double g_pidOutput;
 
 void error_led (const unsigned int color);
 
@@ -98,9 +108,7 @@ int main () {
     const auto messageReceiverCogID = MessageReceiver::trigger();
     const auto messageHandlerCogID  = MessageHandler::trigger();
     const auto pwmDriverCogID       = PWMDriver::trigger();
-
-    const Pin motorsEnabled(Port::P17, Pin::Dir::OUT);
-    motorsEnabled.set();
+    const auto pidControllerCogID   = PIDController::trigger();
 
 #if LOG_SD
     SdLogger::trigger(persistentLogQueue);
@@ -119,6 +127,9 @@ int main () {
     Utility::bit_clear(DIRA, static_cast<PropWare::Bit>(g_serialBus.get_tx_mask())); // Release the TX pin
 #endif
 
+
+    const Pin motorsEnabled(Port::P17, Pin::Dir::OUT);
+    motorsEnabled.set();
 #if LOG_CONSOLE == LOG_CONSOLE_SHORT
     const auto period = SECOND / LOG_FREQUENCY;
     auto timer = CNT + period;
@@ -132,13 +143,14 @@ int main () {
     while (!g_hardFault)
         waitcnt(MILLISECOND + CNT);
 #endif
-
     motorsEnabled.clear();
+
     cogstop(angleComputerCogID);
     cogstop(sensorReaderCogID);
     cogstop(messageReceiverCogID);
     cogstop(messageHandlerCogID);
     cogstop(pwmDriverCogID);
+    cogstop(pidControllerCogID);
 #if LOG_CONSOLE == LOG_CONSOLE_LONG
     cogstop(fullConsoleLoggerCogID);
 #endif

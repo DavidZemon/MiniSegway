@@ -26,27 +26,15 @@
 
 #pragma once
 
-#include <PropWare/memory/sd.h>
-#include <PropWare/filesystem/fat/fatfilewriter.h>
 #include <PropWare/concurrent/runnable.h>
 #include <PropWare/utility/utility.h>
+
+#include "globals.h"
 
 using PropWare::PrintCapable;
 using PropWare::Printer;
 using PropWare::Runnable;
 using PropWare::Utility;
-
-extern const size_t       PERSISTENT_LOG_BUFFER_SIZE;
-extern const unsigned int LOG_FREQUENCY;
-
-extern volatile double       g_accelValueAcosAxis;
-extern volatile double       g_accelValueAsinAxis;
-extern volatile double       g_gyroValue;
-extern volatile unsigned int g_sensorReaderTimer;
-extern volatile double       g_angle;
-extern volatile double       g_accelAngle;
-extern volatile double       g_gyroAngle;
-extern volatile unsigned int g_angleComputerTimer;
 
 class Logger: public Runnable {
     public:
@@ -76,7 +64,13 @@ class Logger: public Runnable {
                     "Gyroscope Value,"
                     "Angle Timer (us),"
                     "Sensor Timer (us),"
-                    "Logger Timer (us)\n";
+                    "PID Controller Timer (us),"
+                    "Logger Timer (us),"
+                    "PID Error,"
+                    "PID Integral,"
+                    "PID Derivative,"
+                    "PID Output"
+                    "\n";
 
             volatile auto timer         = CNT;
             unsigned int  logTime       = 0;
@@ -92,7 +86,12 @@ class Logger: public Runnable {
                               << g_gyroValue << ','
                               << g_angleComputerTimer << ','
                               << g_sensorReaderTimer << ','
-                              << logTime
+                              << g_pidControllerTimer << ','
+                              << logTime << ','
+                              << g_pidError << ','
+                              << g_pidIntegral << ','
+                              << g_pidDerivative << ','
+                              << g_pidOutput
                               << '\n';
                     logTime = Utility::measure_time_interval(timer);
                     timer   = CNT;

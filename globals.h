@@ -33,12 +33,14 @@ extern const size_t ANGLE_COMPUTER_STACK_SIZE;
 extern const size_t MESSAGE_RECEIVER_STACK_SIZE;
 extern const size_t MESSAGE_HANDLER_STACK_SIZE;
 extern const size_t PWM_DRIVER_STACK_SIZE;
+extern const size_t PID_CONTROLLER_STACK_SIZE;
 
 extern uint32_t ANGLE_COMPUTER_STACK[];
 extern uint32_t SENSOR_READER_STACK[];
 extern uint32_t MESSAGE_RECEIVER_STACK[];
 extern uint32_t MESSAGE_HANDLER_STACK[];
 extern uint32_t PWM_DRIVER_STACK[];
+extern uint32_t PID_CONTROLLER_STACK[];
 extern uint8_t  I2C_INTERNAL_BUFFER[];
 
 extern const unsigned int SENSOR_UPDATE_FREQUENCY;
@@ -51,11 +53,13 @@ extern volatile unsigned int            g_hardFault;
 extern volatile double                  g_accelAngle;
 extern volatile double                  g_gyroAngle;
 extern volatile double                  g_angle;
+extern volatile bool                    g_newAngleReady;
 extern volatile double                  g_accelValueAcosAxis;
 extern volatile double                  g_accelValueAsinAxis;
 extern volatile double                  g_gyroValue;
 extern volatile unsigned int            g_sensorReaderTimer;
 extern volatile unsigned int            g_angleComputerTimer;
+extern volatile unsigned int            g_pidControllerTimer;
 extern volatile bool                    g_sensorValuesReady;
 extern volatile ArduinoJson::JsonObject *g_jsonObject;
 extern volatile bool                    g_messageReceived;
@@ -64,3 +68,8 @@ extern volatile double                  g_turn;
 extern volatile double                  g_trim;
 extern volatile unsigned int            g_leftDuty;
 extern volatile unsigned int            g_rightDuty;
+
+extern volatile double g_pidError;
+extern volatile double g_pidIntegral;
+extern volatile double g_pidDerivative;
+extern volatile double g_pidOutput;
