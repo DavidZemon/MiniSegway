@@ -32,11 +32,13 @@ using ArduinoJson::JsonObject;
 extern const size_t ANGLE_COMPUTER_STACK_SIZE;
 extern const size_t MESSAGE_RECEIVER_STACK_SIZE;
 extern const size_t MESSAGE_HANDLER_STACK_SIZE;
+extern const size_t PWM_DRIVER_STACK_SIZE;
 
 extern uint32_t ANGLE_COMPUTER_STACK[];
 extern uint32_t SENSOR_READER_STACK[];
 extern uint32_t MESSAGE_RECEIVER_STACK[];
 extern uint32_t MESSAGE_HANDLER_STACK[];
+extern uint32_t PWM_DRIVER_STACK[];
 extern uint8_t  I2C_INTERNAL_BUFFER[];
 
 extern const unsigned int SENSOR_UPDATE_FREQUENCY;
@@ -60,3 +62,5 @@ extern volatile bool                    g_messageReceived;
 extern volatile double                  g_idealAngle;
 extern volatile double                  g_turn;
 extern volatile double                  g_trim;
+extern volatile unsigned int            g_leftDuty;
+extern volatile unsigned int            g_rightDuty;

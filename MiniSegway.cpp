@@ -28,6 +28,7 @@
 #include "AngleComputer.h"
 #include "SensorReader.h"
 #include "MessageHandler.h"
+#include "PWMDriver.h"
 
 #include <PropWare/hmi/output/ws2812.h>
 
@@ -37,11 +38,13 @@ const size_t ANGLE_COMPUTER_STACK_SIZE   = 256;
 const size_t SENSOR_READER_STACK_SIZE    = 160;
 const size_t MESSAGE_RECEIVER_STACK_SIZE = 64;
 const size_t MESSAGE_HANDLER_STACK_SIZE  = 128;
+const size_t PWM_DRIVER_STACK_SIZE       = 64;
 
 uint32_t ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
 uint32_t SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
 uint32_t MESSAGE_RECEIVER_STACK[MESSAGE_RECEIVER_STACK_SIZE];
 uint32_t MESSAGE_HANDLER_STACK[MESSAGE_HANDLER_STACK_SIZE];
+uint32_t PWM_DRIVER_STACK[PWM_DRIVER_STACK_SIZE];
 uint8_t  I2C_INTERNAL_BUFFER[I2C_BUFFER_SIZE];
 
 const unsigned int SENSOR_UPDATE_FREQUENCY = 250;
@@ -84,6 +87,8 @@ volatile bool         g_messageReceived   = false;
 volatile double       g_idealAngle;
 volatile double       g_turn;
 volatile double       g_trim;
+volatile unsigned int g_leftDuty          = 0;
+volatile unsigned int g_rightDuty         = 0;
 
 void error_led (const unsigned int color);
 
@@ -92,6 +97,10 @@ int main () {
     const auto sensorReaderCogID    = SensorReader::trigger();
     const auto messageReceiverCogID = MessageReceiver::trigger();
     const auto messageHandlerCogID  = MessageHandler::trigger();
+    const auto pwmDriverCogID       = PWMDriver::trigger();
+
+    const Pin motorsEnabled(Port::P17, Pin::Dir::OUT);
+    motorsEnabled.set();
 
 #if LOG_SD
     SdLogger::trigger(persistentLogQueue);
@@ -124,10 +133,12 @@ int main () {
         waitcnt(MILLISECOND + CNT);
 #endif
 
+    motorsEnabled.clear();
     cogstop(angleComputerCogID);
     cogstop(sensorReaderCogID);
     cogstop(messageReceiverCogID);
     cogstop(messageHandlerCogID);
+    cogstop(pwmDriverCogID);
 #if LOG_CONSOLE == LOG_CONSOLE_LONG
     cogstop(fullConsoleLoggerCogID);
 #endif

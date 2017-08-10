@@ -13,6 +13,7 @@ create_executable(${PROJECT_NAME}
     MiniSegway
     MessageHandler
     MessageReceiver
+    PWMDriver
     SdLogger
     SensorReader)
 target_link_libraries(${PROJECT_NAME} m)
