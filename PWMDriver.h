@@ -30,19 +30,16 @@
 #include "globals.h"
 
 using PropWare::DualPWM;
-using PropWare::Pin;
 using PropWare::Runnable;
 
 class PWMDriver {
     public:
-        static const Pin::Mask    MOTOR_1_MASK  = Pin::P10;
-        static const Pin::Mask    MOTOR_2_MASK  = Pin::P11;
         static const unsigned int PWM_FREQUENCY = 20000;
 
     public:
         static int8_t trigger () {
-            static DualPWM pwmDriver(PWM_FREQUENCY, MOTOR_1_MASK, MOTOR_2_MASK, &g_leftDuty, &g_rightDuty,
-                                     PWM_DRIVER_STACK, PWM_DRIVER_STACK_SIZE);
+            static DualPWM pwmDriver(PWM_FREQUENCY, LEFT_MOTOR_PWM_MASK, RIGHT_MOTOR_PWM_MASK, &g_leftDuty,
+                                     &g_rightDuty, PWM_DRIVER_STACK, PWM_DRIVER_STACK_SIZE);
             return Runnable::invoke(pwmDriver);
         }
 };

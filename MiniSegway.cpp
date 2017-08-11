@@ -35,6 +35,11 @@
 
 using PropWare::WS2812;
 
+const Pin::Mask LEFT_MOTOR_DIRECTION_MASK  = Pin::P12;
+const Pin::Mask LEFT_MOTOR_PWM_MASK        = Pin::P13;
+const Pin::Mask RIGHT_MOTOR_DIRECTION_MASK = Pin::P14;
+const Pin::Mask RIGHT_MOTOR_PWM_MASK       = Pin::P15;
+
 const size_t ANGLE_COMPUTER_STACK_SIZE   = 256;
 const size_t SENSOR_READER_STACK_SIZE    = 160;
 const size_t MESSAGE_RECEIVER_STACK_SIZE = 64;

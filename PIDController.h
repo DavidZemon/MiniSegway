@@ -27,22 +27,19 @@
 #pragma once
 
 #include <PropWare/concurrent/runnable.h>
-#include <PropWare/gpio/simpleport.h>
+#include <PropWare/gpio/dualpwm.h>
 #include <PropWare/utility/utility.h>
 
 using PropWare::Runnable;
-using PropWare::SimplePort;
 using PropWare::Port;
 using PropWare::Utility;
+using PropWare::DualPWM;
 
 class PIDController: public Runnable {
     public:
-        static constexpr double KP = MAX_DUTY / MAX_LEAN;
+        static constexpr double KP = DualPWM::MAX_DUTY / MAX_LEAN;
         static constexpr double KI = 0;
         static constexpr double KD = 0;
-
-        static const Port::Mask LEFT_MOTOR_DIRECTION_PIN_MASK  = Pin::P12;
-        static const Port::Mask RIGHT_MOTOR_DIRECTION_PIN_MASK = Pin::P14;
 
     public:
         static int8_t trigger () {
@@ -56,11 +53,8 @@ class PIDController: public Runnable {
         }
 
         virtual void run () {
-            const SimplePort leftMotorDirection(LEFT_MOTOR_DIRECTION_PIN_MASK, 2, Port::Dir::OUT);
-            const SimplePort rightMotorDirection(RIGHT_MOTOR_DIRECTION_PIN_MASK, 2, Port::Dir::OUT);
-
-            leftMotorDirection.clear();
-            rightMotorDirection.clear();
+            const Pin leftMotor(LEFT_MOTOR_DIRECTION_MASK, Pin::Dir::OUT);
+            const Pin rightMotor(RIGHT_MOTOR_DIRECTION_MASK, Pin::Dir::OUT);
 
             while (1) {
                 while (!g_newAngleReady);
@@ -71,12 +65,12 @@ class PIDController: public Runnable {
                 auto pidResult = this->pid(g_angle - g_trim);
 
                 if (pidResult > 0) {
-                    leftMotorDirection.write(0b01);
-                    rightMotorDirection.write(0b01);
+                    leftMotor.clear();
+                    rightMotor.clear();
                 } else {
-                    leftMotorDirection.write(0b10);
-                    rightMotorDirection.write(0b10);
-                    pidResult *= -1;
+                    leftMotor.set();
+                    rightMotor.set();
+                    pidResult += DualPWM::MAX_DUTY;
                 }
 
                 g_leftDuty = g_rightDuty = static_cast<unsigned int>(pidResult);

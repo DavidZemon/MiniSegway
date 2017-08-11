@@ -25,11 +25,18 @@
  */
 
 #include <ArduinoJson.hpp>
+#include <PropWare/gpio/pin.h>
+
 using ArduinoJson::JsonObject;
+using PropWare::Pin;
 
 #define I2C_BUFFER_SIZE 256
 #define MAX_LEAN        5
-#define MAX_DUTY        4096
+
+extern const Pin::Mask LEFT_MOTOR_DIRECTION_MASK;
+extern const Pin::Mask LEFT_MOTOR_PWM_MASK;
+extern const Pin::Mask RIGHT_MOTOR_DIRECTION_MASK;
+extern const Pin::Mask RIGHT_MOTOR_PWM_MASK;
 
 extern const size_t ANGLE_COMPUTER_STACK_SIZE;
 extern const size_t MESSAGE_RECEIVER_STACK_SIZE;
