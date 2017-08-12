@@ -37,7 +37,8 @@ using PropWare::DualPWM;
 
 class PIDController: public Runnable {
     public:
-        static constexpr double KP = DualPWM::MAX_DUTY / MAX_LEAN;
+        static const unsigned int DEAD_ZONE = 900;
+        static constexpr double KP = (DualPWM::MAX_DUTY - DEAD_ZONE) / MAX_LEAN;
         static constexpr double KI = 0;
         static constexpr double KD = 0;
 
@@ -67,9 +68,11 @@ class PIDController: public Runnable {
                 if (pidResult > 0) {
                     leftMotor.clear();
                     rightMotor.clear();
+                    pidResult += DEAD_ZONE;
                 } else {
                     leftMotor.set();
                     rightMotor.set();
+                    pidResult -= DEAD_ZONE;
                     pidResult += DualPWM::MAX_DUTY;
                 }
 
