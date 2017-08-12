@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <math.h>
+#include <cmath>
 
 #include <PropWare/concurrent/runnable.h>
 #include <PropWare/sensor/gyroscope/l3g.h>
@@ -54,8 +54,8 @@ class SensorReader: public Runnable {
         static const ADXL345::Range    ACCELEROMETER_RANGE     = ADXL345::_2G;
         static const ADXL345::DataRate ACCELEROMETER_DATA_RATE = ADXL345::_3200_HZ;
         static const L3G::Axis         GYRO_AXIS               = L3G::Y;
-        static const ADXL345::Axis     ACCEL_AXIS_ACOS         = ADXL345::Z;
-        static const ADXL345::Axis     ACCEL_AXIS_ASIN         = ADXL345::Y;
+        static const ADXL345::Axis     ACCEL_AXIS_ACOS         = ADXL345::Y;
+        static const ADXL345::Axis     ACCEL_AXIS_ASIN         = ADXL345::Z;
         static const unsigned int      GYRO_OFFSET             = 224;
 
     public:

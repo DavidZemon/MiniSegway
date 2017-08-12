@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <PropWare/concurrent/runnable.h>
 #include <PropWare/gpio/dualpwm.h>
 #include <PropWare/utility/utility.h>
@@ -60,6 +61,15 @@ class PIDController: public Runnable {
             while (1) {
                 while (!g_newAngleReady);
                 volatile auto timer = CNT;
+
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#define fabs fabsf
+#endif
+                if ((fabs(g_angle - g_trim)) > MAX_LEAN)
+                    g_hardFault = FLAT_ON_FACE_COLOR;
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#undef fabs
+#endif
 
                 g_newAngleReady = false;
 

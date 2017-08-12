@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <PropWare/hmi/output/printer.h>
 #include <PropWare/concurrent/runnable.h>
 #include <PropWare/utility/utility.h>
 
@@ -56,7 +57,7 @@ class Logger: public Runnable {
 
             m_printer << Printer::Format(6, '0', 10, 3);
 
-            m_printer << "Angle,"
+            m_printer << "Trimmed Angle,"
                     "Accelerometer Angle,"
                     "Gyroscope Angle,"
                     "Accelerometer acos() Value,"
@@ -78,7 +79,7 @@ class Logger: public Runnable {
             auto          loopTimer     = CNT + periodInTicks;
             while (1) {
                 if (this->m_isPrinterReady()) {
-                    m_printer << g_angle << ','
+                    m_printer << g_angle - g_trim << ','
                               << g_accelAngle << ','
                               << g_gyroAngle << ','
                               << g_accelValueAcosAxis << ','

@@ -96,7 +96,7 @@ volatile JsonObject   *g_jsonObject;
 volatile bool         g_messageReceived   = false;
 volatile double       g_idealAngle;
 volatile double       g_turn;
-volatile double       g_trim              = 1.2;
+volatile double       g_trim              = -6.3;
 volatile unsigned int g_leftDuty          = 0;
 volatile unsigned int g_rightDuty         = 0;
 
@@ -113,7 +113,6 @@ int main () {
     const auto messageReceiverCogID = MessageReceiver::trigger();
     const auto messageHandlerCogID  = MessageHandler::trigger();
     const auto pwmDriverCogID       = PWMDriver::trigger();
-    const auto pidControllerCogID   = PIDController::trigger();
 
 #if LOG_SD
     SdLogger::trigger(persistentLogQueue);
@@ -132,7 +131,9 @@ int main () {
     Utility::bit_clear(DIRA, static_cast<PropWare::Bit>(g_serialBus.get_tx_mask())); // Release the TX pin
 #endif
 
-
+    // Wait for the angle to stabilize
+    waitcnt(SECOND + CNT);
+    const auto pidControllerCogID   = PIDController::trigger();
     const Pin motorsEnabled(Port::P17, Pin::Dir::OUT);
     motorsEnabled.set();
 #if LOG_CONSOLE == LOG_CONSOLE_SHORT

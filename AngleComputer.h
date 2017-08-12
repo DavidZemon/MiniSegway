@@ -66,15 +66,6 @@ class AngleComputer: public Runnable {
                 g_angle         = accelerometerAngle * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
                 g_newAngleReady = true;
 
-#ifdef __PROPELLER_32BIT_DOUBLES__
-#define fabs fabsf
-#endif
-                if ((fabs(g_angle - g_trim)) > MAX_LEAN)
-                    g_hardFault = FLAT_ON_FACE_COLOR;
-#ifdef __PROPELLER_32BIT_DOUBLES__
-#undef fabs
-#endif
-
                 g_angleComputerTimer = Utility::measure_time_interval(fullLoopStart);
             }
         }
