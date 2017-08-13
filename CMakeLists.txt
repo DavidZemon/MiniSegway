@@ -13,7 +13,6 @@ create_executable(${PROJECT_NAME}
     MiniSegway
     MessageHandler
     MessageReceiver
-    PIDController
     PWMDriver
     SdLogger
     SensorReader)

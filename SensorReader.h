@@ -33,6 +33,8 @@
 #include <PropWare/sensor/accelerometer/adxl345.h>
 #include <PropWare/utility/utility.h>
 
+#include "globals.h"
+
 using PropWare::SPI;
 using PropWare::L3G;
 using PropWare::ADXL345;
@@ -43,6 +45,8 @@ using PropWare::Utility;
 
 class SensorReader : public Runnable {
     public:
+        static const unsigned int SENSOR_UPDATE_FREQUENCY = 250;
+
         static const Pin::Mask    SCLK             = Pin::Mask::P4;
         static const Pin::Mask    MOSI             = Pin::Mask::P5;
         static const Pin::Mask    MISO             = Pin::Mask::P6;
@@ -57,10 +61,16 @@ class SensorReader : public Runnable {
         static const ADXL345::Axis     ACCEL_AXIS_ACOS         = ADXL345::Y;
         static const ADXL345::Axis     ACCEL_AXIS_ASIN         = ADXL345::Z;
         static const unsigned int      GYRO_OFFSET             = 394;
-        static constexpr double        ACCELEROMETER_OFFSET    = -3.8;
+        static constexpr double        ACCELEROMETER_OFFSET    = -4.3;
 
-        static constexpr double ACCELEROMETER_WEIGHT = 0.08;
+        static constexpr double ACCELEROMETER_WEIGHT = 0.02;
         static constexpr double GYRO_WEIGHT          = 1 - ACCELEROMETER_WEIGHT;
+
+        // PID/Motor parameters
+        static const unsigned int MOTOR_DEAD_ZONE = 675;
+        static constexpr double   KP              = 150;
+        static constexpr double   KI              = 0;
+        static constexpr double   KD              = 0;
 
     public:
         static int8_t trigger() {
@@ -69,7 +79,9 @@ class SensorReader : public Runnable {
         }
 
         virtual void run() {
-            static const unsigned int updatePeriodInTicks = SECOND / SENSOR_UPDATE_FREQUENCY;
+            const Pin          leftMotor(LEFT_MOTOR_DIRECTION_MASK, Pin::Dir::OUT);
+            const Pin          rightMotor(RIGHT_MOTOR_DIRECTION_MASK, Pin::Dir::OUT);
+            const unsigned int updatePeriodInTicks = SECOND / SENSOR_UPDATE_FREQUENCY;
 
             this->init();
 
@@ -89,7 +101,20 @@ class SensorReader : public Runnable {
                 g_gyroAngle  = leanFromGyro;
                 g_angle      = accelerometerAngle * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
 
-                g_sensorValuesReady = true;
+                if (!g_stabilizationWait) {
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#define fabs fabsf
+#endif
+                    if ((fabs(g_angle - g_trim)) > MAX_LEAN)
+                        g_hardFault = FLAT_ON_FACE_COLOR;
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#undef fabs
+#endif
+
+                    auto pidResult = this->pid(g_angle - g_trim);
+                    pidResult  = set_motor_direction(leftMotor, rightMotor, pidResult);
+                    g_leftDuty = g_rightDuty = static_cast<unsigned int>(pidResult);
+                }
 
                 g_sensorReaderTimer = Utility::measure_time_interval(fullLoopStart);
                 timer               = waitcnt2(timer, updatePeriodInTicks);
@@ -149,6 +174,44 @@ class SensorReader : public Runnable {
 #undef atan2
 #endif
             return angle * 180 / M_PI;
+        }
+
+        static int32_t set_motor_direction(const Pin &leftMotor, const Pin &rightMotor, const int32_t pidResult) {
+            if (pidResult > 0) {
+                leftMotor.clear();
+                rightMotor.clear();
+                return pidResult + MOTOR_DEAD_ZONE;
+            } else {
+                leftMotor.set();
+                rightMotor.set();
+                return pidResult + DualPWM::MAX_DUTY - MOTOR_DEAD_ZONE;
+            }
+        }
+
+        static int32_t pid(const double currentAngle) {
+            static double previousAngle = 0;
+            static double integral      = 0;
+
+            // Proportional
+            const auto error = currentAngle - g_idealAngle;
+
+            // Integral
+            integral += error;
+
+            // Derivative
+            // TODO: How the heck do I deal with a changing ideal angle?
+            const auto derivative = currentAngle - previousAngle;
+
+            previousAngle = currentAngle;
+
+            const int32_t output = static_cast<int32_t>(KP * error + KI * integral + KD * derivative);
+
+            g_pidError      = error;
+            g_pidIntegral   = integral;
+            g_pidDerivative = derivative;
+            g_pidOutput     = output;
+
+            return output;
         }
 
     private:

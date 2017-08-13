@@ -25,7 +25,6 @@
  */
 
 #include "PWMDriver.h"
-#include "PIDController.h"
 #include "MessageReceiver.h"
 #include "SensorReader.h"
 #include "MessageHandler.h"
@@ -40,21 +39,18 @@ const Pin::Mask RIGHT_MOTOR_DIRECTION_MASK = Pin::P14;
 const Pin::Mask RIGHT_MOTOR_PWM_MASK       = Pin::P15;
 
 const size_t SENSOR_READER_STACK_SIZE    = 384;
+const size_t PWM_DRIVER_STACK_SIZE       = 48;
 const size_t MESSAGE_RECEIVER_STACK_SIZE = 64;
 const size_t MESSAGE_HANDLER_STACK_SIZE  = 128;
-const size_t PWM_DRIVER_STACK_SIZE       = 48;
-const size_t PID_CONTROLLER_STACK_SIZE   = 128;
 
 uint32_t SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
+uint32_t PWM_DRIVER_STACK[PWM_DRIVER_STACK_SIZE];
 uint32_t MESSAGE_RECEIVER_STACK[MESSAGE_RECEIVER_STACK_SIZE];
 uint32_t MESSAGE_HANDLER_STACK[MESSAGE_HANDLER_STACK_SIZE];
-uint32_t PWM_DRIVER_STACK[PWM_DRIVER_STACK_SIZE];
-uint32_t PID_CONTROLLER_STACK[PID_CONTROLLER_STACK_SIZE];
 uint8_t  I2C_INTERNAL_BUFFER[I2C_BUFFER_SIZE];
 
-const unsigned int SENSOR_UPDATE_FREQUENCY = 250;
-const unsigned int FLAT_ON_FACE_COLOR      = 0x080000;
-const unsigned int SD_CARD_ERROR_COLOR     = 0x080800;
+const unsigned int FLAT_ON_FACE_COLOR  = 0x080000;
+const unsigned int SD_CARD_ERROR_COLOR = 0x080800;
 
 #if defined(LOG_SD)
 #include "Logger.h"
@@ -67,8 +63,10 @@ static CharQueue persistentLogQueue(PERSISTENT_LOG_BUFFER);
 #endif
 
 #if LOG_CONSOLE == LOG_CONSOLE_LONG
+
 #include "Logger.h"
 #include <PropWare/serial/uart/uarttx.h>
+
 const size_t CONSOLE_LOGGER_STACK_SIZE = 196;
 uint32_t     CONSOLE_LOGGER_STACK[CONSOLE_LOGGER_STACK_SIZE];
 using PropWare::UARTTX;
@@ -81,12 +79,11 @@ volatile unsigned int g_hardFault         = 0;
 volatile double       g_angle             = 0;
 volatile double       g_accelAngle;
 volatile double       g_gyroAngle;
-volatile bool         g_sensorValuesReady = false;
+volatile bool         g_stabilizationWait = true;
 volatile double       g_accelValueAcosAxis;
 volatile double       g_accelValueAsinAxis;
 volatile double       g_gyroValue;
 volatile unsigned int g_sensorReaderTimer;
-volatile unsigned int g_pidControllerTimer;
 volatile JsonObject   *g_jsonObject;
 volatile bool         g_messageReceived   = false;
 volatile double       g_idealAngle;
@@ -106,7 +103,6 @@ int main () {
     const auto sensorReaderCogID    = SensorReader::trigger();
     const auto messageReceiverCogID = MessageReceiver::trigger();
     const auto messageHandlerCogID  = MessageHandler::trigger();
-    const auto pwmDriverCogID       = PWMDriver::trigger();
 
 #if LOG_SD
     SdLogger::trigger(persistentLogQueue);
@@ -127,8 +123,9 @@ int main () {
 
     // Wait for the angle to stabilize
     waitcnt(SECOND + CNT);
-    const auto pidControllerCogID   = PIDController::trigger();
-    const Pin motorsEnabled(Port::P17, Pin::Dir::OUT);
+    g_stabilizationWait = false;
+    const auto pwmDriverCogID = PWMDriver::trigger();
+    const Pin  motorsEnabled(Port::P17, Pin::Dir::OUT);
     motorsEnabled.set();
 #if LOG_CONSOLE == LOG_CONSOLE_SHORT
     const auto period = SECOND / LOG_FREQUENCY;
@@ -146,10 +143,9 @@ int main () {
     motorsEnabled.clear();
 
     cogstop(sensorReaderCogID);
+    cogstop(pwmDriverCogID);
     cogstop(messageReceiverCogID);
     cogstop(messageHandlerCogID);
-    cogstop(pwmDriverCogID);
-    cogstop(pidControllerCogID);
 #if LOG_CONSOLE == LOG_CONSOLE_LONG
     cogstop(fullConsoleLoggerCogID);
 #endif
