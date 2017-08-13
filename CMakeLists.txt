@@ -8,7 +8,7 @@ set(MODEL cmm)
 set(BOARD dna)
 
 create_executable(${PROJECT_NAME}
-    AngleComputer
+    globals
     Logger
     MiniSegway
     MessageHandler

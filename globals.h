@@ -31,20 +31,18 @@ using ArduinoJson::JsonObject;
 using PropWare::Pin;
 
 #define I2C_BUFFER_SIZE 256
-#define MAX_LEAN        5
+#define MAX_LEAN        10
 
 extern const Pin::Mask LEFT_MOTOR_DIRECTION_MASK;
 extern const Pin::Mask LEFT_MOTOR_PWM_MASK;
 extern const Pin::Mask RIGHT_MOTOR_DIRECTION_MASK;
 extern const Pin::Mask RIGHT_MOTOR_PWM_MASK;
 
-extern const size_t ANGLE_COMPUTER_STACK_SIZE;
 extern const size_t MESSAGE_RECEIVER_STACK_SIZE;
 extern const size_t MESSAGE_HANDLER_STACK_SIZE;
 extern const size_t PWM_DRIVER_STACK_SIZE;
 extern const size_t PID_CONTROLLER_STACK_SIZE;
 
-extern uint32_t ANGLE_COMPUTER_STACK[];
 extern uint32_t SENSOR_READER_STACK[];
 extern uint32_t MESSAGE_RECEIVER_STACK[];
 extern uint32_t MESSAGE_HANDLER_STACK[];
@@ -62,12 +60,10 @@ extern volatile unsigned int            g_hardFault;
 extern volatile double                  g_accelAngle;
 extern volatile double                  g_gyroAngle;
 extern volatile double                  g_angle;
-extern volatile bool                    g_newAngleReady;
 extern volatile double                  g_accelValueAcosAxis;
 extern volatile double                  g_accelValueAsinAxis;
 extern volatile double                  g_gyroValue;
 extern volatile unsigned int            g_sensorReaderTimer;
-extern volatile unsigned int            g_angleComputerTimer;
 extern volatile unsigned int            g_pidControllerTimer;
 extern volatile bool                    g_sensorValuesReady;
 extern volatile ArduinoJson::JsonObject *g_jsonObject;

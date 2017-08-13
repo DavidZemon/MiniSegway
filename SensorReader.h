@@ -41,7 +41,7 @@ using PropWare::Port;
 using PropWare::Runnable;
 using PropWare::Utility;
 
-class SensorReader: public Runnable {
+class SensorReader : public Runnable {
     public:
         static const Pin::Mask    SCLK             = Pin::Mask::P4;
         static const Pin::Mask    MOSI             = Pin::Mask::P5;
@@ -56,15 +56,19 @@ class SensorReader: public Runnable {
         static const L3G::Axis         GYRO_AXIS               = L3G::Y;
         static const ADXL345::Axis     ACCEL_AXIS_ACOS         = ADXL345::Y;
         static const ADXL345::Axis     ACCEL_AXIS_ASIN         = ADXL345::Z;
-        static const unsigned int      GYRO_OFFSET             = 224;
+        static const unsigned int      GYRO_OFFSET             = 394;
+        static constexpr double        ACCELEROMETER_OFFSET    = -3.8;
+
+        static constexpr double ACCELEROMETER_WEIGHT = 0.08;
+        static constexpr double GYRO_WEIGHT          = 1 - ACCELEROMETER_WEIGHT;
 
     public:
-        static int8_t trigger () {
+        static int8_t trigger() {
             static SensorReader instance;
             return Runnable::invoke(instance);
         }
 
-        virtual void run () {
+        virtual void run() {
             static const unsigned int updatePeriodInTicks = SECOND / SENSOR_UPDATE_FREQUENCY;
 
             this->init();
@@ -74,7 +78,17 @@ class SensorReader: public Runnable {
                 volatile auto fullLoopStart = CNT;
 
                 this->read_accelerometer(g_accelValueAcosAxis, g_accelValueAsinAxis);
-                g_gyroValue         = this->read_gyro();
+                g_gyroValue = this->read_gyro();
+
+
+                const double accelerometerAngle = to_degrees(g_accelValueAsinAxis, g_accelValueAcosAxis)
+                                                  - ACCELEROMETER_OFFSET;
+                const double leanFromGyro       = g_angle + g_gyroValue / SENSOR_UPDATE_FREQUENCY;
+
+                g_accelAngle = accelerometerAngle;
+                g_gyroAngle  = leanFromGyro;
+                g_angle      = accelerometerAngle * ACCELEROMETER_WEIGHT + leanFromGyro * GYRO_WEIGHT;
+
                 g_sensorValuesReady = true;
 
                 g_sensorReaderTimer = Utility::measure_time_interval(fullLoopStart);
@@ -83,7 +97,7 @@ class SensorReader: public Runnable {
         }
 
     private:
-        void init () {
+        void init() {
             SPI::get_instance().set_mosi(MOSI);
             SPI::get_instance().set_miso(MISO);
             SPI::get_instance().set_sclk(SCLK);
@@ -97,14 +111,12 @@ class SensorReader: public Runnable {
             this->init_accelerometer();
         }
 
-        void init_gyro () const {
+        void init_gyro() const {
             this->m_gyro.set_dps(GYRO_RESOLUTION);
-            this->m_gyro.write(L3G::Register::CTRL_REG1, 0b11001111); // Data rate = 760 Hz, Low-pass filter = 30 Hz
-            this->m_gyro.write(L3G::Register::CTRL_REG5, PropWare::BIT_4); // Enable HP filter
-            this->m_gyro.write(L3G::Register::CTRL_REG2, 4); // High-pass filter = 3.5 Hz
+            this->m_gyro.write(L3G::Register::CTRL_REG1, 0b11111111); // Data rate = 760 Hz, Low-pass filter = 100 Hz
         }
 
-        void init_accelerometer () const {
+        void init_accelerometer() const {
             ADXL345::RateAndPowerMode rateAndPowerMode;
             rateAndPowerMode.fields.dataRate = ACCELEROMETER_DATA_RATE;
             this->m_accelerometer.write(ADXL345::Register::RATE_AND_POWER_MODE, rateAndPowerMode.raw);
@@ -116,20 +128,31 @@ class SensorReader: public Runnable {
             this->m_accelerometer.start();
         }
 
-        void read_accelerometer (volatile double &acosAxis, volatile double &asinAxis) const {
+        void read_accelerometer(volatile double &acosAxis, volatile double &asinAxis) const {
             int16_t individualReadings[3];
             this->m_accelerometer.read(individualReadings);
             acosAxis = ADXL345::scale(individualReadings[ACCEL_AXIS_ACOS], ACCELEROMETER_RANGE);
             asinAxis = ADXL345::scale(individualReadings[ACCEL_AXIS_ASIN], ACCELEROMETER_RANGE);
         }
 
-        double read_gyro () const {
+        double read_gyro() const {
             const auto raw = this->m_gyro.read(GYRO_AXIS);
             return L3G::to_dps(raw - GYRO_OFFSET, GYRO_RESOLUTION);
         }
 
+        static double to_degrees(const double value, const double value2) {
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#define atan2 atan2f
+#endif
+            double angle = atan2(value, value2);
+#ifdef __PROPELLER_32BIT_DOUBLES__
+#undef atan2
+#endif
+            return angle * 180 / M_PI;
+        }
+
     private:
-        SensorReader ()
+        SensorReader()
                 : Runnable(SENSOR_READER_STACK, SENSOR_READER_STACK_SIZE),
                   m_accelerometer(ACCELEROMETER_CS, false),
                   m_gyro(SPI::get_instance(), GYRO_CS, false) {

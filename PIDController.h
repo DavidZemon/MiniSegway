@@ -36,30 +36,30 @@ using PropWare::Port;
 using PropWare::Utility;
 using PropWare::DualPWM;
 
-class PIDController: public Runnable {
+class PIDController : public Runnable {
     public:
-        static const unsigned int DEAD_ZONE = 900;
-        static constexpr double KP = (DualPWM::MAX_DUTY - DEAD_ZONE) / MAX_LEAN;
-        static constexpr double KI = 0;
-        static constexpr double KD = 0;
+        static const unsigned int MOTOR_DEAD_ZONE = 700;
+        static constexpr double   KP              = 200;
+        static constexpr double   KI              = 0;
+        static constexpr double   KD              = 0;
 
     public:
-        static int8_t trigger () {
+        static int8_t trigger() {
             static const PIDController pidController;
             return Runnable::invoke(pidController);
         }
 
     public:
-        PIDController ()
+        PIDController()
                 : Runnable(PID_CONTROLLER_STACK, PID_CONTROLLER_STACK_SIZE) {
         }
 
-        virtual void run () {
+        virtual void run() {
             const Pin leftMotor(LEFT_MOTOR_DIRECTION_MASK, Pin::Dir::OUT);
             const Pin rightMotor(RIGHT_MOTOR_DIRECTION_MASK, Pin::Dir::OUT);
 
             while (1) {
-                while (!g_newAngleReady);
+                while (!g_sensorValuesReady);
                 volatile auto timer = CNT;
 
 #ifdef __PROPELLER_32BIT_DOUBLES__
@@ -71,18 +71,18 @@ class PIDController: public Runnable {
 #undef fabs
 #endif
 
-                g_newAngleReady = false;
+                g_sensorValuesReady = false;
 
                 auto pidResult = this->pid(g_angle - g_trim);
 
                 if (pidResult > 0) {
                     leftMotor.clear();
                     rightMotor.clear();
-                    pidResult += DEAD_ZONE;
+                    pidResult += MOTOR_DEAD_ZONE;
                 } else {
                     leftMotor.set();
                     rightMotor.set();
-                    pidResult -= DEAD_ZONE;
+                    pidResult -= MOTOR_DEAD_ZONE;
                     pidResult += DualPWM::MAX_DUTY;
                 }
 
@@ -94,7 +94,7 @@ class PIDController: public Runnable {
         }
 
     private:
-        int32_t pid (const double currentAngle) {
+        int32_t pid(const double currentAngle) {
             static double previousAngle = 0;
             static double integral      = 0;
 

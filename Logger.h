@@ -63,7 +63,6 @@ class Logger: public Runnable {
                     "Accelerometer acos() Value,"
                     "Accelerometer asin() Value,"
                     "Gyroscope Value,"
-                    "Angle Timer (us),"
                     "Sensor Timer (us),"
                     "PID Controller Timer (us),"
                     "Logger Timer (us),"
@@ -85,7 +84,6 @@ class Logger: public Runnable {
                               << g_accelValueAcosAxis << ','
                               << g_accelValueAsinAxis << ','
                               << g_gyroValue << ','
-                              << g_angleComputerTimer << ','
                               << g_sensorReaderTimer << ','
                               << g_pidControllerTimer << ','
                               << logTime << ','

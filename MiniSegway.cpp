@@ -27,7 +27,6 @@
 #include "PWMDriver.h"
 #include "PIDController.h"
 #include "MessageReceiver.h"
-#include "AngleComputer.h"
 #include "SensorReader.h"
 #include "MessageHandler.h"
 
@@ -40,14 +39,12 @@ const Pin::Mask LEFT_MOTOR_PWM_MASK        = Pin::P13;
 const Pin::Mask RIGHT_MOTOR_DIRECTION_MASK = Pin::P14;
 const Pin::Mask RIGHT_MOTOR_PWM_MASK       = Pin::P15;
 
-const size_t ANGLE_COMPUTER_STACK_SIZE   = 256;
-const size_t SENSOR_READER_STACK_SIZE    = 160;
+const size_t SENSOR_READER_STACK_SIZE    = 384;
 const size_t MESSAGE_RECEIVER_STACK_SIZE = 64;
 const size_t MESSAGE_HANDLER_STACK_SIZE  = 128;
 const size_t PWM_DRIVER_STACK_SIZE       = 48;
 const size_t PID_CONTROLLER_STACK_SIZE   = 128;
 
-uint32_t ANGLE_COMPUTER_STACK[ANGLE_COMPUTER_STACK_SIZE];
 uint32_t SENSOR_READER_STACK[SENSOR_READER_STACK_SIZE];
 uint32_t MESSAGE_RECEIVER_STACK[MESSAGE_RECEIVER_STACK_SIZE];
 uint32_t MESSAGE_HANDLER_STACK[MESSAGE_HANDLER_STACK_SIZE];
@@ -82,21 +79,19 @@ const unsigned int LOG_FREQUENCY = 100;
 
 volatile unsigned int g_hardFault         = 0;
 volatile double       g_angle             = 0;
-volatile bool         g_newAngleReady     = false;
 volatile double       g_accelAngle;
 volatile double       g_gyroAngle;
 volatile bool         g_sensorValuesReady = false;
 volatile double       g_accelValueAcosAxis;
 volatile double       g_accelValueAsinAxis;
 volatile double       g_gyroValue;
-volatile unsigned int g_angleComputerTimer;
 volatile unsigned int g_sensorReaderTimer;
 volatile unsigned int g_pidControllerTimer;
 volatile JsonObject   *g_jsonObject;
 volatile bool         g_messageReceived   = false;
 volatile double       g_idealAngle;
 volatile double       g_turn;
-volatile double       g_trim              = -6.3;
+volatile double       g_trim              = 0;
 volatile unsigned int g_leftDuty          = 0;
 volatile unsigned int g_rightDuty         = 0;
 
@@ -108,7 +103,6 @@ volatile int32_t g_pidOutput;
 void error_led (const unsigned int color);
 
 int main () {
-    const auto angleComputerCogID   = AngleComputer::trigger();
     const auto sensorReaderCogID    = SensorReader::trigger();
     const auto messageReceiverCogID = MessageReceiver::trigger();
     const auto messageHandlerCogID  = MessageHandler::trigger();
@@ -151,7 +145,6 @@ int main () {
 #endif
     motorsEnabled.clear();
 
-    cogstop(angleComputerCogID);
     cogstop(sensorReaderCogID);
     cogstop(messageReceiverCogID);
     cogstop(messageHandlerCogID);
