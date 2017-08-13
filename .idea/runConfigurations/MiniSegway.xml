@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MiniSegway" type="CMakeRunConfiguration" factoryName="Application" singleton="true" PROGRAM_PARAMS="-b dna MiniSegway -r -t" WORKING_DIR="file://$PROJECT_DIR$/bin" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MiniSegway" TARGET_NAME="MiniSegway" CONFIG_NAME="None" RUN_PATH="/opt/parallax/bin/propeller-load">
+    <envs />
+    <method />
+  </configuration>
+</component>
